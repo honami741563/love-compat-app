@@ -6,8 +6,11 @@ from flask import Flask, render_template, request, redirect, url_for, session, a
 import db
 import scoring
 import ogimage
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-this-in-production")
 
 db.init_db()
