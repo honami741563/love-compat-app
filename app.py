@@ -2,16 +2,20 @@
 import os
 import uuid
 from flask import Flask, render_template, request, redirect, url_for, session, abort, send_file
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 import db
 import scoring
 import ogimage
-from werkzeug.middleware.proxy_fix import ProxyFix
-
 
 app = Flask(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-this-in-production")
+
+# Renderなどのリバースプロキシ経由では、内部的にはHTTPで中継されるため、
+# Flaskが「本当はHTTPSだった」と正しく認識できるようにする。
+# これが無いと url_for(..., _external=True) が http://... を生成してしまい、
+# SNSのクローラーがog:image等の画像URLを取得できなくなる。
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 db.init_db()
 
