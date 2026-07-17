@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ target.nickname }}さんから招待されました{% endblock %}
+{% block head %}
+<meta property="og:title" content="{{ target.nickname }}さんの恋愛守護パートナーは「{{ character.name }}」タイプ！あなたも診断してみない？">
+<meta property="og:description" content="{{ character.title }} - {{ character.desc }}">
+<meta property="og:image" content="{{ og_image_url }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.url }}">
+<meta name="twitter:card" content="summary_large_image">
+{% endblock %}
+{% block content %}
+<div class="center-card">
+  <p class="invite-lead">💌 <strong>{{ target.nickname }}</strong>さんから恋愛タイプ診断に招待されています</p>
+
+  <div class="result-visual result-visual-small">
+    <div class="character-halo"></div>
+    <img src="{{ url_for('static', filename='characters/' + character.file) }}"
+         alt="{{ character.name }}" class="character-bg">
+  </div>
+
+  <div class="character-caption">
+    <p class="character-heading">{{ target.nickname }}さんの恋愛守護パートナーは<br><strong>「{{ character.name }}」</strong>タイプ！</p>
+    <p class="character-sub">{{ character.title }}</p>
+  </div>
+
+  <div class="score-list">
+    {% for key, label in labels.items() %}
+    <div class="score-row">
+      <span class="score-label">{{ label }}</span>
+      <span class="score-value">{{ target.scores[key] }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="cta-box">
+    <p class="lead">17問に答えると、{{ target.nickname }}さんとの相性度が自動で表示されます。</p>
+    <a href="{{ url_for('index') }}" class="btn-primary">自分も診断をやってみる！</a>
+  </div>
+</div>
+{% endblock %}

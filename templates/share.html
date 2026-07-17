@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}シェアする | 恋愛相性診断{% endblock %}
+{% block content %}
+<div class="center-card">
+  <h1>結果をシェアする</h1>
+  <p class="lead">2種類のリンクがあります。目的に合わせて使い分けてください。</p>
+
+  <div class="share-section">
+    <h2>① 結果だけ見てもらうリンク</h2>
+    <p class="lead">相性診断はせず、あなたの診断結果（レーダーチャート）だけを見せたいときに使ってください。</p>
+    <div class="url-row">
+      <input type="text" readonly value="{{ view_url }}" class="text-input" id="viewUrlInput" onclick="this.select()">
+      <button type="button" class="btn-secondary" onclick="copyToClipboard('viewUrlInput')">コピー</button>
+    </div>
+    <div class="sns-buttons" id="snsView"></div>
+  </div>
+
+  <div class="share-section">
+    <h2>② 相性を測ってもらうリンク</h2>
+    <p class="lead">このリンクを踏んだ相手が診断を受けると、あなたとの相性度が自動で表示されます。</p>
+    <div class="url-row">
+      <input type="text" readonly value="{{ match_url }}" class="text-input" id="matchUrlInput" onclick="this.select()">
+      <button type="button" class="btn-secondary" onclick="copyToClipboard('matchUrlInput')">コピー</button>
+    </div>
+    <div class="sns-buttons" id="snsMatch"></div>
+    <p class="note">⚠️ このリンクはあなた専用です。第三者が代理で発行することはできません。悪用を避けるため、必ずご自身のアカウントから共有してください。</p>
+  </div>
+</div>
+
+<script>
+const viewUrl  = {{ view_url  | tojson }};
+const matchUrl = {{ match_url | tojson }};
+const nickname = {{ data.nickname | tojson }};
+const characterName = {{ character.name | tojson }};
+const hashtag  = {{ hashtag | tojson }};
+
+function copyToClipboard(id) {
+  const el = document.getElementById(id);
+  el.select();
+  el.setSelectionRange(0, 99999);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(el.value).then(() => alert('リンクをコピーしました'));
+  } else {
+    document.execCommand('copy');
+    alert('リンクをコピーしました');
+  }
+}
+
+function buildSnsButtons(containerId, url, text) {
+  const container = document.getElementById(containerId);
+  const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}&hashtags=${encodeURIComponent(hashtag)}`;
+  const bskyText = `${text} ${url} #${hashtag}`;
+  const bskyUrl = `https://bsky.app/intent/compose?text=${encodeURIComponent(bskyText)}`;
+  const lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+
+  container.innerHTML = `
+    <a href="${xUrl}" target="_blank" rel="noopener" class="sns-btn sns-x">Xでポスト</a>
+    <a href="${bskyUrl}" target="_blank" rel="noopener" class="sns-btn sns-bsky">Blueskyでポスト</a>
+    <a href="${lineUrl}" target="_blank" rel="noopener" class="sns-btn sns-line">LINEで送る</a>
+  `;
+}
+
+buildSnsButtons('snsView', viewUrl, `${nickname}さんの恋愛守護パートナーは「${characterName}」タイプ🌟 診断結果はこちら💘`);
+buildSnsButtons('snsMatch', matchUrl, `私の恋愛タイプは「${characterName}」タイプ（${nickname}）でした💘 あなたとの相性、測ってみない？`);
+</script>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}診断スタート | 恋愛相性診断{% endblock %}
+{% block content %}
+{% if invited_by %}
+<div class="invite-banner">
+  💌 <strong>{{ invited_by }}</strong>さんから相性診断に招待されています。診断が終わると自動的に相性結果が表示されます。
+</div>
+{% endif %}
+<h1>あなたの恋愛タイプを診断</h1>
+<p class="lead">全17問。直感でお答えください。</p>
+
+<form method="post" action="{{ url_for('submit') }}" id="quiz-form">
+  {% for q in questions %}
+  <div class="question-card">
+    <p class="q-text">Q{{ q.id }}. {{ q.text }}</p>
+    <div class="scale">
+      <span class="scale-label">全く当てはまらない</span>
+      {% for v in range(1,6) %}
+      <label class="scale-option">
+        <input type="radio" name="q{{ q.id }}" value="{{ v }}" required>
+        <span>{{ v }}</span>
+      </label>
+      {% endfor %}
+      <span class="scale-label">とても当てはまる</span>
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="question-card">
+    <p class="q-text">Q17. これまでの交際人数を選んでください。</p>
+    <div class="dating-select">
+      {% for value, label in dating_choices %}
+      <label class="dating-option">
+        <input type="radio" name="dating" value="{{ value }}" required>
+        <span>{{ label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <button type="submit" class="btn-primary">結果を見る</button>
+</form>
+{% endblock %}

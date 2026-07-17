@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{{ data.nickname }}さんの結果{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<meta property="og:title" content="{{ data.nickname }}さんの恋愛タイプは「{{ character.name }}」タイプ！">
+<meta property="og:description" content="{{ character.title }} - {{ character.desc }}">
+<meta property="og:image" content="{{ og_image_url }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.url }}">
+<meta name="twitter:card" content="summary_large_image">
+{% endblock %}
+{% block content %}
+<div class="center-card">
+  <h1>{{ data.nickname }}さんの恋愛タイプ</h1>
+
+  <div class="result-visual">
+    <div class="character-halo"></div>
+    <img src="{{ url_for('static', filename='characters/' + character.file) }}"
+         alt="{{ character.name }}" class="character-bg">
+    <canvas id="radarChart" width="320" height="320"></canvas>
+  </div>
+
+  <div class="character-caption">
+    <p class="character-heading">あなたの恋愛守護パートナーは<br><strong>「{{ character.name }}」</strong>タイプ！</p>
+    <p class="character-sub">{{ character.title }}</p>
+    <p class="character-desc">{{ character.desc }}</p>
+  </div>
+
+  <div class="score-list">
+    {% for key, label in labels.items() %}
+    <div class="score-row">
+      <div class="score-label-group">
+        <span class="score-label">{{ label }}</span>
+        <span class="score-desc">{{ descriptions[key] }}</span>
+      </div>
+      <span class="score-value">{{ data.scores[key] }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <p class="score-disclaimer">※ これらのスコアはあくまで「特徴・傾向」を表すものです。点数が高いから良い、低いから悪いというものではありません。</p>
+
+  {% if is_owner %}
+  <div class="share-box">
+    <a href="{{ url_for('share', hash_id=data.hash_id) }}" class="btn-secondary">🔗 結果をシェアする</a>
+    <a href="{{ url_for('compare_manual') }}" class="btn-secondary">誰かのスコアを手入力して相性診断する</a>
+  </div>
+  {% else %}
+  <div class="cta-box">
+    <a href="{{ url_for('match', hash_id=data.hash_id) }}" class="btn-primary">{{ data.nickname }}さんとの相性を測る</a>
+    <a href="{{ url_for('index') }}" class="btn-secondary">自分も診断をやってみる！</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+const scores = {{ data.scores | tojson }};
+const labels = {{ labels | tojson }};
+const ctx = document.getElementById('radarChart');
+new Chart(ctx, {
+  type: 'radar',
+  data: {
+    labels: Object.values(labels),
+    datasets: [{
+      label: "{{ data.nickname }}",
+      data: Object.keys(labels).map(k => scores[k]),
+      backgroundColor: 'rgba(255, 99, 150, 0.25)',
+      borderColor: 'rgba(255, 99, 150, 1)',
+      pointBackgroundColor: 'rgba(255, 99, 150, 1)',
+    }]
+  },
+  options: {
+    scales: {
+      r: { min: 0, max: 100, ticks: { stepSize: 20 } }
+    }
+  }
+});
+</script>
+{% endblock %}

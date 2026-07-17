@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}相性診断（手入力）{% endblock %}
+{% block content %}
+<div class="center-card">
+  <h1>相手のスコアを入力</h1>
+  <p class="lead">相手の診断結果画面に表示された5つの数値を、スライダーで入力してください。（この情報はサーバーに保存されません）</p>
+
+  <div id="sliders">
+    {% for key, label in labels.items() %}
+    <div class="slider-row">
+      <label for="s_{{ key }}">{{ label }}: <span id="v_{{ key }}">50</span></label>
+      <input type="range" id="s_{{ key }}" min="10" max="100" value="50" data-key="{{ key }}">
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="match-result">
+    <p>相性度</p>
+    <p class="match-percent" id="matchPercent">--%</p>
+  </div>
+
+  <div class="share-section">
+    <h2>この相性結果を保存してシェアする</h2>
+    <p class="lead">相手のニックネームを入れて保存すると、共有できるリンクが発行されます。</p>
+    <form method="post" action="{{ url_for('compare_save') }}" id="saveForm">
+      <input type="hidden" name="resilience" id="hidden_resilience">
+      <input type="hidden" name="empathy" id="hidden_empathy">
+      <input type="hidden" name="passion" id="hidden_passion">
+      <input type="hidden" name="commit" id="hidden_commit">
+      <input type="hidden" name="romance" id="hidden_romance">
+      <input type="text" name="nickname" maxlength="20" placeholder="相手のニックネーム（未入力なら「ゲスト」）" class="text-input">
+      <button type="submit" class="btn-primary">この相性結果をシェアする</button>
+    </form>
+  </div>
+</div>
+
+<script>
+const myScores = {{ my_scores | tojson }};
+
+function computeMatch(a, b) {
+  const diffRoman = Math.abs(a.romance - b.romance);
+  const diffCommit = Math.abs(a.commit - b.commit);
+  const scoreRoman = Math.max(0, 20 - diffRoman * 0.22);
+  const scoreCommit = Math.max(0, 20 - diffCommit * 0.22);
+  const similarity = scoreRoman + scoreCommit;
+
+  const diffPassion = Math.abs(a.passion - b.passion);
+  let complementary;
+  if (diffPassion <= 15 || (diffPassion >= 40 && diffPassion <= 70)) {
+    complementary = 30;
+  } else {
+    complementary = 15;
+  }
+
+  const minR = Math.min(a.resilience, b.resilience);
+  const maxR = Math.max(a.resilience, b.resilience);
+  let safety;
+  if ((minR <= 40 && maxR >= 80) || minR > 40) {
+    safety = 30;
+  } else {
+    safety = 10;
+  }
+
+  return Math.round((similarity + complementary + safety) * 10) / 10;
+}
+
+function readOpponentScores() {
+  const sliders = document.querySelectorAll('#sliders input[type=range]');
+  const opponent = {};
+  sliders.forEach(s => { opponent[s.dataset.key] = Number(s.value); });
+  return opponent;
+}
+
+function update() {
+  const opponent = readOpponentScores();
+  document.querySelectorAll('#sliders input[type=range]').forEach(s => {
+    document.getElementById('v_' + s.dataset.key).textContent = s.value;
+  });
+  const result = computeMatch(myScores, opponent);
+  document.getElementById('matchPercent').textContent = result + '%';
+}
+
+document.querySelectorAll('#sliders input[type=range]').forEach(s => {
+  s.addEventListener('input', update);
+});
+update();
+
+document.getElementById('saveForm').addEventListener('submit', function () {
+  const opponent = readOpponentScores();
+  Object.keys(opponent).forEach(key => {
+    document.getElementById('hidden_' + key).value = opponent[key];
+  });
+});
+</script>
+{% endblock %}

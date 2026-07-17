@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}{{ data_a.nickname }}さんと{{ data_b.nickname }}さんの相性{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<meta property="og:title" content="{{ data_a.nickname }}さんと{{ data_b.nickname }}さんの相性度は{{ match_result.total }}%！">
+<meta property="og:description" content="「{{ char_a.name }}」タイプと「{{ char_b.name }}」タイプの相性診断結果">
+<meta property="og:image" content="{{ og_image_url }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.url }}">
+<meta name="twitter:card" content="summary_large_image">
+{% endblock %}
+{% block content %}
+<div class="center-card">
+  <h1>{{ data_a.nickname }}さん × {{ data_b.nickname }}さん</h1>
+
+  <div class="match-result">
+    <p>総合相性度</p>
+    <p class="match-percent">{{ match_result.total }}%</p>
+    <p class="match-detail">
+      価値観の類似性: {{ match_result.similarity_score }}/40　
+      社交の相補性: {{ match_result.complementary_score }}/30　
+      安全ネット: {{ match_result.safety_score }}/30
+    </p>
+  </div>
+
+  <div class="result-visual">
+    <div class="character-halo"></div>
+    <canvas id="radarChart" width="320" height="320"></canvas>
+  </div>
+
+  <div class="character-pair-row">
+    <div class="character-pair-item">
+      <img src="{{ url_for('static', filename='characters/' + char_a.file) }}" alt="{{ char_a.name }}" class="character-thumb character-thumb-a">
+      <p class="character-pair-name">{{ data_a.nickname }}さん<br><strong>「{{ char_a.name }}」</strong></p>
+    </div>
+    <div class="character-pair-item">
+      <img src="{{ url_for('static', filename='characters/' + char_b.file) }}" alt="{{ char_b.name }}" class="character-thumb character-thumb-b">
+      <p class="character-pair-name">{{ data_b.nickname }}さん<br><strong>「{{ char_b.name }}」</strong></p>
+    </div>
+  </div>
+
+  <div class="score-list">
+    {% for key, label in labels.items() %}
+    <div class="score-row">
+      <span class="score-label">{{ label }}</span>
+      <span class="score-value score-value-a">{{ data_a.scores[key] }}</span>
+      <span class="score-value score-value-b">{{ data_b.scores[key] }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if is_participant %}
+  <div class="share-section">
+    <h2>この相性結果をシェアする</h2>
+    <div class="url-row">
+      <input type="text" readonly value="{{ share_url }}" class="text-input" id="shareUrlInput" onclick="this.select()">
+      <button type="button" class="btn-secondary" onclick="copyToClipboard('shareUrlInput')">コピー</button>
+    </div>
+    <div class="sns-buttons" id="snsMatch"></div>
+  </div>
+  {% else %}
+  <div class="cta-box">
+    <p class="lead">あなたも自分のタイプを診断してみませんか？</p>
+    <a href="{{ url_for('index') }}" class="btn-primary">自分も診断をやってみる！</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+const labels = {{ labels | tojson }};
+const scoresA = {{ data_a.scores | tojson }};
+const scoresB = {{ data_b.scores | tojson }};
+const nicknameA = {{ data_a.nickname | tojson }};
+const nicknameB = {{ data_b.nickname | tojson }};
+
+new Chart(document.getElementById('radarChart'), {
+  type: 'radar',
+  data: {
+    labels: Object.values(labels),
+    datasets: [
+      {
+        label: nicknameA,
+        data: Object.keys(labels).map(k => scoresA[k]),
+        backgroundColor: 'rgba(255, 99, 150, 0.25)',
+        borderColor: 'rgba(255, 99, 150, 1)',
+        pointBackgroundColor: 'rgba(255, 99, 150, 1)',
+      },
+      {
+        label: nicknameB,
+        data: Object.keys(labels).map(k => scoresB[k]),
+        backgroundColor: 'rgba(79, 141, 253, 0.22)',
+        borderColor: 'rgba(79, 141, 253, 1)',
+        pointBackgroundColor: 'rgba(79, 141, 253, 1)',
+      }
+    ]
+  },
+  options: {
+    scales: { r: { min: 0, max: 100, ticks: { stepSize: 20 } } },
+    plugins: { legend: { position: 'bottom' } }
+  }
+});
+
+{% if is_participant %}
+const shareUrl = {{ share_url | tojson }};
+const hashtag = {{ hashtag | tojson }};
+
+function copyToClipboard(id) {
+  const el = document.getElementById(id);
+  el.select();
+  el.setSelectionRange(0, 99999);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(el.value).then(() => alert('リンクをコピーしました'));
+  } else {
+    document.execCommand('copy');
+    alert('リンクをコピーしました');
+  }
+}
+
+const shareText = `${nicknameA}さんと${nicknameB}さんの相性は{{ match_result.total }}%でした💘`;
+const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}&hashtags=${encodeURIComponent(hashtag)}`;
+const bskyUrl = `https://bsky.app/intent/compose?text=${encodeURIComponent(shareText + ' ' + shareUrl + ' #' + hashtag)}`;
+const lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+
+document.getElementById('snsMatch').innerHTML = `
+  <a href="${xUrl}" target="_blank" rel="noopener" class="sns-btn sns-x">Xでポスト</a>
+  <a href="${bskyUrl}" target="_blank" rel="noopener" class="sns-btn sns-bsky">Blueskyでポスト</a>
+  <a href="${lineUrl}" target="_blank" rel="noopener" class="sns-btn sns-line">LINEで送る</a>
+`;
+{% endif %}
+</script>
+{% endblock %}
